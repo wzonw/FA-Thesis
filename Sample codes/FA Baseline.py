@@ -96,8 +96,8 @@ class FireflyAlgorithm:
         self.bounds = bounds
         
         # Initialize fireflies at random positions
-        self.fireflies = np.random.uniform(self.bounds[0], self.bounds[1], (self.num_fireflies, self.dimension))
-
+        self.fireflies = np.full((self.num_fireflies, self.dimension), 5)
+       
     def sphere(self, x):
         #Objective function: sphere function to minimize
         return np.sum(x**2)
@@ -105,6 +105,8 @@ class FireflyAlgorithm:
     def compute_brightness(self):
         #Calculate brightness based on the inverse of the objective function
         return 1.0 / (1.0 + np.array([self.sphere(f) for f in self.fireflies]))
+
+
 
     def update_fireflies(self, brightness):
         #Update firefly positions based on brightness

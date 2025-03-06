@@ -57,7 +57,7 @@ class FireflyAlgorithm:
                 self.best_intensity = self.light_intensity[i]
                 self.best_firefly = self.fireflies[i]
 
-    def attractiveness(self, r): #iteration parameter
+    def attractiveness(self, r, beta, gamma): #iteration parameter
         #dynamic_light_absoption = 1.0 / (1+(iteration/self.max_iter)) 
         return self.beta_min * np.exp(-self.gamma_val * r**2) #* dynamic_light_absoption
 
@@ -79,7 +79,7 @@ class FireflyAlgorithm:
                     r = np.linalg.norm(self.fireflies[i] - self.fireflies[j])
                     beta = self.attractiveness(r) #iteration with dynamic gamma and beta for parametric adjustment
                     L = self.levy_flight(1.5) #Levy Flight = ()/Scaling = Balanced mix of short & long jumps if lower (1) more long jumps, if lesser more short jumps like gaussian method
-                    step_size = (1 - r / self.upper_bound) #* dynamic_alpha #Dynamic Alpha Steps
+                    step_size = (1 - r / self.upper_bound) * dynamic_alpha #Dynamic Alpha Steps
                     self.fireflies[i] = (
                         self.fireflies[i] * (1 - beta) +
                         self.fireflies[j] * beta +
