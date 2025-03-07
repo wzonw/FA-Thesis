@@ -23,6 +23,9 @@ class FireflyAlgorithm:
         self.light_intensity = np.zeros(n_fireflies)
         self.best_firefly = None
         self.best_intensity = float("inf")
+        self.distance_history = []
+        self.best_brightness_history = []
+        self.best_solutions = []
 
     def initialize_fireflies(self): #K-Means Clustering function for Firefly Clustered Initialization
         kmeans = KMeans(n_clusters=self.n_fireflies) 
@@ -44,7 +47,20 @@ class FireflyAlgorithm:
         u = np.random.randn() * sigma
         v = np.random.randn()
         step = u / abs(v)**(1 / Lambda)
+
+        #print(f"step: {step}")
+
         return step
+
+    def calculate_average_distance(self):
+        # Calculate the average distance between all pairs of fireflies
+        total_distance = 0
+        for i in range(self.n_fireflies):
+            for j in range(i + 1, self.n_fireflies):  # Avoid redundant pairs
+                total_distance += np.linalg.norm(self.fireflies[i] - self.fireflies[j])
+        # Return the average distance
+        return total_distance / (self.n_fireflies * (self.n_fireflies - 1) / 2)
+
 
     def move_fireflies(self, iteration): 
         # Dynamic parameter adjustment
@@ -58,6 +74,7 @@ class FireflyAlgorithm:
                     r = np.linalg.norm(self.fireflies[i] - self.fireflies[j])
                     beta = self.attractiveness(r, dynamic_beta, dynamic_gamma) #b and y dynamic adjusment
                     L = self.levy_flight(1.5)  # Levy flight Formula with 1.5 scale for jumps
+                    #L = np.clip(L, 1, 2) #Limit the Lambda Values to mitigate randomization errors
                     step_size = (1 - r / self.upper_bound) * dynamic_alpha  # Dynamic alpha step size
                     self.fireflies[i] = (
                         self.fireflies[i] * (1 - beta) +
@@ -72,6 +89,12 @@ class FireflyAlgorithm:
         for t in range(self.max_iter):
             self.update_light_intensity()
             self.move_fireflies(t)
+            
+            avg_distance = self.calculate_average_distance()
+            self.distance_history.append(avg_distance)
+            self.best_brightness_history.append(self.best_intensity)
+            self.best_solutions.append(self.best_firefly)
+            
             print(f"iteration {t+1}/{self.max_iter}: Best Intensity = {self.best_intensity:.6f} ")
         end_time = time.time()
         execution_time_min = (end_time - start_time)/60
@@ -98,13 +121,34 @@ print("SOP 123")
 print("Best solution:", best_solution)
 print(f"Best objective value: {best_intensity:.6f}")
 
+
+fig, axs = plt.subplots(3,1, figsize=(10,5))
+best_solutions = np.array(fa.best_solutions)
+best_fitness_value = np.array(fa.best_brightness_history)
+
+axs[0].plot(best_solutions[:,0], best_solutions[:,1], '-o')
+axs[0].set_title("Best Solutions Over Iterations")
+axs[0].set_xlabel('x1')
+axs[0].set_ylabel("x2")
+
+
+axs[1].plot(best_fitness_value)
+axs[1].set_title("Best Function Value over Iteration")
+axs[1].set_xlabel('Iteration')
+axs[1].set_ylabel("Funciton Values")
+
+
+axs[2].plot(fa.distance_history)
+axs[2].set_title("Average Distance Over Iteration")
+axs[2].set_xlabel('Distance')
+axs[2].set_ylabel("Iteration")
 '''
-# Visualization (optional)
+# Visualization (optional)a
 plt.scatter(fa.fireflies[:, 0], fa.fireflies[:, 1], c='yellow', label='Fireflies')
 plt.scatter(fa.best_firefly[0], fa.best_firefly[1], c='red', label='Best Solution')
 plt.title(f'Iteration {max_iter}')
 plt.xlabel("x1")
 plt.ylabel("x2")
 plt.legend()
-plt.show()
 '''
+plt.show()

@@ -94,9 +94,13 @@ class FireflyAlgorithm:
         self.beta0 = beta0
         self.dimension = dimension
         self.bounds = bounds
+
+        self.best_brightness_history = []
+        self.distance_history = []
         
         # Initialize fireflies at random positions
         self.fireflies = np.full((self.num_fireflies, self.dimension), 5)
+        self.fireflies = np.random.uniform(bounds[0], bounds[1],(self.num_fireflies, self.dimension))
        
     def sphere(self, x):
         #Objective function: sphere function to minimize
@@ -124,6 +128,15 @@ class FireflyAlgorithm:
                     new_fireflies[i] = np.clip(new_fireflies[i], self.bounds[0], self.bounds[1])
         return new_fireflies
 
+    def calculate_average_distance(self):
+        # Calculate the average distance between all pairs of fireflies
+        total_distance = 0
+        for i in range(self.num_fireflies):
+            for j in range(i + 1, self.num_fireflies):  # Avoid redundant pairs
+                total_distance += np.linalg.norm(self.fireflies[i] - self.fireflies[j])
+        # Return the average distance
+        return total_distance / (self.num_fireflies * (self.num_fireflies - 1) / 2)
+
     def optimize(self):
         #Run the Firefly Algorithm for optimization
         best_solutions = []
@@ -134,6 +147,9 @@ class FireflyAlgorithm:
             best_firefly = self.fireflies[np.argmax(brightness)]
             best_solutions.append(best_firefly)
             best_fitness_values.append(self.sphere(best_firefly))
+
+            avg_distance = self.calculate_average_distance()
+            self.distance_history.append(avg_distance)
             print(f"Iteration {iteration + 1}/{self.num_iterations}: Best Fitness = {best_fitness_values[-1]:.6f}")
         
         return best_solutions, best_fitness_values
@@ -159,7 +175,7 @@ print("\nBest solution found:", best_solution)
 print("Function value at best solution:", fa.sphere(best_solution))
 
 # Create a figure with two subplots
-fig, axs = plt.subplots(2)
+fig, axs = plt.subplots(3,1, figsize=(10,20))
 
 # Plotting the path of the best solutions (for visualization)
 best_solutions = np.array(best_solutions)
@@ -173,6 +189,12 @@ axs[1].plot(best_fitness_values)
 axs[1].set_title("Best Function Value over Iterations")
 axs[1].set_xlabel("Iteration")
 axs[1].set_ylabel("Best Function Value")
+
+#Plotting of the Distance of Fireflies 
+axs[2].plot(fa.distance_history)
+axs[2].set_title("Average Distance Between Fireflies (Exploration vs Exploitation)")
+axs[2].set_xlabel("Iteration")
+axs[2].set_ylabel("Average Distance")
 
 # Display the plots
 plt.tight_layout()
