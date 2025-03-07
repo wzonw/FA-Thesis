@@ -49,7 +49,7 @@ class FireflyAlgorithm:
         step = u / abs(v)**(1 / Lambda)
 
         #print(f"step: {step}")
-
+        step = np.clip(step, -1, 1)
         return step
 
     def calculate_average_distance(self):
@@ -65,15 +65,16 @@ class FireflyAlgorithm:
     def move_fireflies(self, iteration): 
         # Dynamic parameter adjustment
         dynamic_alpha = self.alpha / (1 + iteration / self.max_iter)  # Adjust alpha for exploration-exploitation
-        dynamic_beta = self.beta_min + (1 - self.beta_min) * np.exp(-iteration / (self.max_iter / 2))  # Beta decay for convergence
-        dynamic_gamma = self.gamma_val * (1 - iteration / self.max_iter)  # Gamma decay to balance attraction
+        dynamic_beta = self.beta_min + (1 - self.beta_min) * np.exp(-iteration / self.max_iter )  # Beta decay for convergence
+        dynamic_gamma = self.gamma_val * (iteration / self.max_iter)  # Gamma decay to balance attraction
+
 
         for i in range(self.n_fireflies):
             for j in range(self.n_fireflies):
                 if self.light_intensity[i] > self.light_intensity[j]:
                     r = np.linalg.norm(self.fireflies[i] - self.fireflies[j])
                     beta = self.attractiveness(r, dynamic_beta, dynamic_gamma) #b and y dynamic adjusment
-                    L = self.levy_flight(1.5)  # Levy flight Formula with 1.5 scale for jumps
+                    L = self.levy_flight(1.5) * np.exp(-iteration / (self.max_iter / 2))  # Levy flight Formula with 1.5 scale for jumps with decaying function to lessen the long jump over iteration
                     #L = np.clip(L, 1, 2) #Limit the Lambda Values to mitigate randomization errors
                     step_size = (1 - r / self.upper_bound) * dynamic_alpha  # Dynamic alpha step size
                     self.fireflies[i] = (
@@ -84,16 +85,25 @@ class FireflyAlgorithm:
                     )
                     self.fireflies[i] = np.clip(self.fireflies[i], self.lower_bound, self.upper_bound)
 
+    def calculate_diversity(self):
+        # Calculate the diversity (standard deviation) of firefly positions
+        return np.std(self.fireflies, axis=0).mean()
+
     def optimize(self):
         start_time = time.time()
+        diversity_over_time = []
         for t in range(self.max_iter):
             self.update_light_intensity()
             self.move_fireflies(t)
             
-            avg_distance = self.calculate_average_distance()
-            self.distance_history.append(avg_distance)
+            # avg_distance = self.calculate_average_distance()
+            # self.distance_history.append(avg_distance)
+
             self.best_brightness_history.append(self.best_intensity)
             self.best_solutions.append(self.best_firefly)
+
+            diversity = self.calculate_diversity()
+            diversity_over_time.append(diversity)
             
             print(f"iteration {t+1}/{self.max_iter}: Best Intensity = {self.best_intensity:.6f} ")
         end_time = time.time()
@@ -101,7 +111,7 @@ class FireflyAlgorithm:
         execution_time_sec = end_time - start_time
         print(f"Speed Record in Minute/s: {execution_time_min}")
         print(f"Speed Record in Second/s: {execution_time_sec}")    
-        return self.best_firefly, self.best_intensity
+        return self.best_firefly, self.best_intensity, diversity_over_time
 
 # Parameters
 n_dim = 2
@@ -115,7 +125,7 @@ gamma_val = 1.0
 
 # Initialize and run the algorithm
 fa = FireflyAlgorithm(n_fireflies, n_dim, lower_bound, upper_bound, max_iter, alpha, beta_min, gamma_val)
-best_solution, best_intensity = fa.optimize()
+best_solution, best_intensity, diversity_over_time = fa.optimize()
 
 print("SOP 123")
 print("Best solution:", best_solution)
@@ -125,6 +135,7 @@ print(f"Best objective value: {best_intensity:.6f}")
 fig, axs = plt.subplots(3,1, figsize=(10,5))
 best_solutions = np.array(fa.best_solutions)
 best_fitness_value = np.array(fa.best_brightness_history)
+
 
 axs[0].plot(best_solutions[:,0], best_solutions[:,1], '-o')
 axs[0].set_title("Best Solutions Over Iterations")
@@ -138,10 +149,10 @@ axs[1].set_xlabel('Iteration')
 axs[1].set_ylabel("Funciton Values")
 
 
-axs[2].plot(fa.distance_history)
-axs[2].set_title("Average Distance Over Iteration")
-axs[2].set_xlabel('Distance')
-axs[2].set_ylabel("Iteration")
+axs[2].plot(diversity_over_time)
+axs[2].set_title("Diversity Over Iteration")
+axs[2].set_xlabel('Iteration')
+axs[2].set_ylabel("Diversity")
 '''
 # Visualization (optional)a
 plt.scatter(fa.fireflies[:, 0], fa.fireflies[:, 1], c='yellow', label='Fireflies')
@@ -151,4 +162,7 @@ plt.xlabel("x1")
 plt.ylabel("x2")
 plt.legend()
 '''
+plt.tight_layout()
 plt.show()
+
+
