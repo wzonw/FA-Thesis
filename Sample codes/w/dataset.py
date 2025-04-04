@@ -57,7 +57,7 @@ class FireflyAlgorithm:
                 self.best_intensity = self.light_intensity[i]
                 self.best_firefly = self.fireflies[i]
 
-    def attractiveness(self, r, beta, gamma): #iteration parameter
+    def attractiveness(self, r): #iteration parameter
         #dynamic_light_absoption = 1.0 / (1+(iteration/self.max_iter)) 
         return self.beta_min * np.exp(-self.gamma_val * r**2) #* dynamic_light_absoption
 
@@ -69,16 +69,16 @@ class FireflyAlgorithm:
         return step
 
     def move_fireflies(self, iteration):
-        #dynamic_alpha = self.alpha * (1 - iteration / self.max_iter)  # Adjust alpha for exploration-exploitation
-        #dynamic_beta = self.beta_min + (1 - self.beta_min) * np.exp(-iteration / (self.max_iter / 2))  # Beta decay for convergence
-        #dynamic_gamma = self.gamma_val * (1 - iteration / self.max_iter)  # Gamma decay to balance attraction
-        
+        dynamic_alpha = self.alpha * (1 - iteration / self.max_iter)  # Adjust alpha for exploration-exploitation
+        dynamic_beta = self.beta_min + (1 - self.beta_min) * np.exp(-iteration / self.max_iter)  # gentler decay
+        dynamic_gamma = self.gamma_val * (1 / (1 + 0.1 * iteration))  # slower gamma decay
+
         for i in range(self.n_fireflies):
             for j in range(self.n_fireflies):
                 if self.light_intensity[i] > self.light_intensity[j]:
                     r = np.linalg.norm(self.fireflies[i] - self.fireflies[j])
-                    beta = self.attractiveness(r) #iteration with dynamic gamma and beta for parametric adjustment
-                    L = self.levy_flight(1.5) #Levy Flight = ()/Scaling = Balanced mix of short & long jumps if lower (1) more long jumps, if lesser more short jumps like gaussian method
+                    beta = dynamic_beta * np.exp(-dynamic_gamma * r**2) #iteration with dynamic gamma and beta for parametric adjustment
+                    L = self.levy_flight(1.5) #Levy Flight = ()/Scaling = Balanced mix of short & long jumps if lower (1) more long jumps, if lesser = more short jumps like gaussian method
                     step_size = (1 - r / self.upper_bound) * dynamic_alpha #Dynamic Alpha Steps
                     self.fireflies[i] = (
                         self.fireflies[i] * (1 - beta) +
@@ -134,7 +134,7 @@ plt.ylabel("Objective Value (Severity Penalty + Allocation Penalty)")
 plt.title("Convergence Over Iterations")
 plt.legend()
 plt.grid()
-#plt.show()
+plt.show()
 
 # Firefly Movement Visualization
 plt.figure(figsize=(10, 5))

@@ -66,6 +66,7 @@ class FireflyAlgorithm:
         # Dynamic parameter adjustment
         dynamic_alpha = self.alpha / (1 + iteration / self.max_iter)  # Adjust alpha for exploration-exploitation
         dynamic_beta = self.beta_min + (1 - self.beta_min) * np.exp(-iteration / self.max_iter )  # Beta decay for convergence
+        #Old formula for dynammic beta dynamic_beta = self.beta_min + (self.beta_min) * np.exp(-iteration / (self.max_iter/-2))
         dynamic_gamma = self.gamma_val * (iteration / self.max_iter)  # Gamma decay to balance attraction
 
 
@@ -73,7 +74,7 @@ class FireflyAlgorithm:
             for j in range(self.n_fireflies):
                 if self.light_intensity[i] > self.light_intensity[j]:
                     r = np.linalg.norm(self.fireflies[i] - self.fireflies[j])
-                    beta = self.attractiveness(r, dynamic_beta, dynamic_gamma) #b and y dynamic adjusment
+                    beta = dynamic_beta * np.exp(-dynamic_gamma * r**2) #b and y dynamic adjusment
                     L = self.levy_flight(1.5) * np.exp(-iteration / (self.max_iter / 2))  # Levy flight Formula with 1.5 scale for jumps with decaying function to lessen the long jump over iteration
                     #L = np.clip(L, 1, 2) #Limit the Lambda Values to mitigate randomization errors
                     step_size = (1 - r / self.upper_bound) * dynamic_alpha  # Dynamic alpha step size
