@@ -7,7 +7,7 @@ from scipy.special import gamma as gamma_func
 import time
 
 #CSV dataset
-data = pd.read_csv("Sample codes/healthcare_data.csv")  
+data = pd.read_csv("healthcare_data.csv")  
 hospitals = data["Hospital_code"].values
 severity_mapping = {'Extreme': 3, 'Moderate': 2, 'Minor': 1}
 severity = data["Severity of Illness"].map(severity_mapping).values  # Apply the mapping to the severity column
@@ -68,7 +68,7 @@ class FireflyAlgorithm:
         # step = u / abs(v) ** (1 / Lambda)
         # return step
 
-    def move_fireflies(self):
+    def move_fireflies(self, iteration):
         # dynamic_alpha = self.alpha * (1 - iteration / self.max_iter)  # Adjust alpha for exploration-exploitation
         # dynamic_beta = self.beta_min + (1 - self.beta_min) * np.exp(-iteration / self.max_iter)  # gentler decay
         # dynamic_gamma = self.gamma_val * (1 / (1 + 0.1 * iteration))  # slower gamma decay
