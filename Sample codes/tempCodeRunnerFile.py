@@ -1,213 +1,127 @@
-#GAGAMITIN NAMIN FINAL AS BASELINE OF THE ALGO
-'''
+#Enhanced Algorithm with Dataset
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.cluster import KMeans
+from scipy.special import gamma as gamma_func
+import time
 
-# Example function to minimize
-def sphere(x):
-    return np.sum(x**2)
+#CSV dataset
+data = pd.read_csv("healthcare_data.csv")  
+hospitals = data["Hospital_code"].values
+severity_mapping = {'Extreme': 3, 'Moderate': 2, 'Minor': 1}
+severity = data["Severity of Illness"].map(severity_mapping).values  # Apply the mapping to the severity column
+max_capacity = data["Available Extra Rooms in Hospital"].values
 
-# Firefly Algorithm parameters
-num_fireflies = 20
-num_iterations = 15
-alpha = 0.5  # Randomness factor
-gamma = 0.5  # Absorption coefficient
-beta0 = 0.2  # Attraction at zero distance
-dimension = 2  # Dimension of the problem space
-bounds = [-10, 10]  # Bounds for the problem space
+# Normalize severity scores
+severity_normalized = severity / np.sum(severity)
 
-# Initialize fireflies at random positions
-fireflies = np.random.uniform(bounds[0], bounds[1], (num_fireflies, dimension))
-
-# Function to compute brightness (inverted, because we're minimizing)
-def compute_brightness(fireflies):
-    return 1.0 / (1.0 + np.array([sphere(f) for f in fireflies]))
-
-# Function to update the position of fireflies
-def update_fireflies(fireflies, brightness):
-    new_fireflies = np.copy(fireflies)
-    num_fireflies = fireflies.shape[0]
-    for i in range(num_fireflies):
-        for j in range(num_fireflies):
-            if brightness[j] > brightness[i]:
-                distance = np.linalg.norm(fireflies[j] - fireflies[i])
-                beta = beta0 * np.exp(-gamma * distance**2)  # Attraction
-                # Update position with attraction and random movement
-                random_vector = alpha * (np.random.uniform(-0.5, 0.5, dimension))
-                new_fireflies[i] = (
-                    fireflies[i] + beta * (fireflies[j] - fireflies[i]) + random_vector
-                )
-                # Ensure boundaries are respected
-                new_fireflies[i] = np.clip(new_fireflies[i], bounds[0], bounds[1])
-    return new_fireflies
-
-# Run the Firefly Algorithm
-best_solutions = []
-best_fitness_values = []  # Added this line to track the best fitness value in each iteration
-for iteration in range(num_iterations):
-    brightness = compute_brightness(fireflies)
-    fireflies = update_fireflies(fireflies, brightness)
-    best_firefly = fireflies[np.argmax(brightness)]
-    best_solutions.append(best_firefly)
-    best_fitness_values.append(sphere(best_firefly))  # Added this line to store the best fitness value
-
-
-# Display the results
-best_solution = best_solutions[-1]
-print("Best solution found:", best_solution)
-print("Function value at best solution:", sphere(best_solution))
-
-# Create a figure with two subplots
-fig, axs = plt.subplots(2)
-
-# Plotting the path of the best solutions (for visualization)
-best_solutions = np.array(best_solutions)
-axs[0].plot(best_solutions[:, 0], best_solutions[:, 1], '-o')
-axs[0].set_title("Best Solutions Over Iterations")
-axs[0].set_xlabel("X1")
-axs[0].set_ylabel("X2")
-
-
-# Plotting the best fitness value over iterations
-axs[1].plot(best_fitness_values)
-axs[1].set_title("Best Function Value over Iterations")
-axs[1].set_xlabel("Iteration")
-axs[1].set_ylabel("Best Function Value")
-
-# Display the plots
-plt.tight_layout()
-plt.show()
-
-
-'''
-# OOP Method = Internet Sourced
-
-import numpy as np
-import matplotlib.pyplot as plt
+# Updated objective function to prioritize severity
+def objective_function(x):
+    # Penalty for exceeding max capacity
+    allocation_penalty = np.sum(np.maximum(0, x - max_capacity) ** 2)
+    
+    # Penalty for under-allocating resources relative to severity
+    severity_penalty = np.sum((x / np.sum(x) - severity_normalized) ** 2)
+    
+    # Increase severity's weight in the objective function (optional)
+    severity_weight = 15  # Increase this value to give more weight to severity
+    return severity_weight * severity_penalty + allocation_penalty
 
 class FireflyAlgorithm:
-    def __init__(self, num_fireflies, num_iterations, alpha, gamma, beta0, dimension, bounds):
-        self.num_fireflies = num_fireflies
-        self.num_iterations = num_iterations
+    def __init__(self, n_fireflies, n_dim, lower_bound, upper_bound, max_iter, alpha=0.5, beta_min=0.2, gamma_val=1.0):
+        self.n_fireflies = n_fireflies
+        self.n_dim = n_dim
+        self.lower_bound = lower_bound
+        self.upper_bound = np.where(upper_bound == 0, 1e-6, upper_bound)
+        self.max_iter = max_iter
         self.alpha = alpha
-        self.gamma = gamma
-        self.beta0 = beta0
-        self.dimension = dimension
-        self.bounds = bounds
-
-        self.best_brightness_history = []
-        self.distance_history = []        
+        self.beta_min = beta_min
+        self.gamma_val = gamma_val
         
-        # Initialize fireflies at random positions
-        #self.fireflies = np.full((self.num_fireflies, self.dimension), 5)
-        self.fireflies = np.random.uniform(bounds[0], bounds[1],(self.num_fireflies, self.dimension))
-       
-    def sphere(self, x):
-        #Objective function: sphere function to minimize
-        return np.sum(x**2)
+        self.fireflies = self.initialize_fireflies()
+        self.light_intensity = np.zeros(n_fireflies)
+        self.best_firefly = None
+        self.best_intensity = float("inf")
+        self.intensity_history = []
 
-    def compute_brightness(self):
-        #Calculate brightness based on the inverse of the objective function
-        return 1.0 / (1.0 + np.array([self.sphere(f) for f in self.fireflies]))
+    def initialize_fireflies(self):
+        kmeans = KMeans(n_clusters=self.n_fireflies) #k-means clustering
+        clusters = kmeans.fit(np.random.uniform(self.lower_bound, self.upper_bound, (self.n_fireflies * 2, self.n_dim)))
+        return clusters.cluster_centers_
 
+    def update_light_intensity(self):
+        for i in range(self.n_fireflies):
+            self.light_intensity[i] = objective_function(self.fireflies[i])
+            if self.light_intensity[i] < self.best_intensity:
+                self.best_intensity = self.light_intensity[i]
+                self.best_firefly = self.fireflies[i]
 
+    def attractiveness(self, r): #iteration parameter
+        #dynamic_light_absoption = 1.0 / (1+(iteration/self.max_iter)) 
+        return self.beta_min * np.exp(-self.gamma_val * r**2) #* dynamic_light_absoption
 
-    def update_fireflies(self, brightness):
-        #Update firefly positions based on brightness
-        new_fireflies = np.copy(self.fireflies)
-        for i in range(self.num_fireflies):
-            for j in range(self.num_fireflies):
-                if brightness[j] > brightness[i]:
-                    distance = np.linalg.norm(self.fireflies[j] - self.fireflies[i])
-                    beta = self.beta0 * np.exp(-self.gamma * distance**2)  # Attraction
-                    random_vector = self.alpha * (np.random.uniform(-0.5, 0.5, self.dimension))
-                    new_fireflies[i] = (
-                        self.fireflies[i] + beta * (self.fireflies[j] - self.fireflies[i]) + random_vector
+    # def levy_flight(self, Lambda):
+        # sigma = (gamma_func(1 + Lambda) * np.sin(np.pi * Lambda / 2) /(gamma_func((1 + Lambda) / 2) * Lambda * 2 ** ((Lambda - 1) / 2))) ** (1 / Lambda)
+        # u = np.random.randn() * sigma
+        # v = np.random.randn()
+        # step = u / abs(v) ** (1 / Lambda)
+        # return step
+
+    def move_fireflies(self, iteration):
+        # dynamic_alpha = self.alpha * (1 - iteration / self.max_iter)  # Adjust alpha for exploration-exploitation
+        # dynamic_beta = self.beta_min + (1 - self.beta_min) * np.exp(-iteration / self.max_iter)  # gentler decay
+        # dynamic_gamma = self.gamma_val * (1 / (1 + 0.1 * iteration))  # slower gamma decay
+
+        for i in range(self.n_fireflies):
+            for j in range(self.n_fireflies):
+                if self.light_intensity[i] > self.light_intensity[j]:
+                    r = np.linalg.norm(self.fireflies[i] - self.fireflies[j])
+                    beta = self.attractiveness(r)                  
+                    #L = self.levy_flight(1.5) #Levy Flight = ()/Scaling = Balanced mix of short & long jumps if lower (1) more long jumps, if lesser = more short jumps like gaussian method
+                    step_size = (1 - r / self.upper_bound) #* dynamic_alpha #Dynamic Alpha Steps
+                    self.fireflies[i] = (
+                        self.fireflies[i] * (1 - beta) +
+                        self.fireflies[j] * beta +
+                        step_size * (np.random.rand(self.n_dim) - 0.5)
                     )
-                    # Ensure boundaries are respected
-                    new_fireflies[i] = np.clip(new_fireflies[i], self.bounds[0], self.bounds[1])
-        return new_fireflies
-
-    # def calculate_average_distance(self):
-    #     # Calculate the average distance between all pairs of fireflies
-    #     total_distance = 0
-    #     for i in range(self.num_fireflies):
-    #         for j in range(i + 1, self.num_fireflies):  # Avoid redundant pairs
-    #             total_distance += np.linalg.norm(self.fireflies[i] - self.fireflies[j])
-    #     # Return the average distance
-    #     return total_distance / (self.num_fireflies * (self.num_fireflies - 1) / 2)
-    
-    def calculate_diversity(self):
-        # Calculate the diversity (standard deviation) of firefly positions
-        return np.std(self.fireflies, axis=0).mean()
+                    self.fireflies[i] = np.clip(self.fireflies[i], self.lower_bound, self.upper_bound)
 
     def optimize(self):
-        #Run the Firefly Algorithm for optimization
-        best_solutions = []
-        best_fitness_values = []
-        diversity_over_time = []
-        for iteration in range(self.num_iterations):
-            brightness = self.compute_brightness()
-            self.fireflies = self.update_fireflies(brightness)
-            best_firefly = self.fireflies[np.argmax(brightness)]
-            best_solutions.append(best_firefly)
-            best_fitness_values.append(self.sphere(best_firefly))
-
-            # avg_distance = self.calculate_average_distance()
-            # self.distance_history.append(avg_distance)
-            
-            diversity = self.calculate_diversity()
-            diversity_over_time.append(diversity)       
-
-            print(f"Iteration {iteration + 1}/{self.num_iterations}: Best Fitness = {best_fitness_values[-1]:.6f} ")
+        start_time = time.time()
+        for t in range(self.max_iter):
+            self.update_light_intensity()
+            self.move_fireflies(t)
+            self.intensity_history.append(self.best_intensity)
+            print(f"Iteration {t+1}/{self.max_iter}: Best Intensity = {self.best_intensity:.6e}")
+        end_time = time.time()
+        execution_time_min = (end_time - start_time)/60
+        execution_time_sec = end_time - start_time
+        print(f"Speed Record in Minutes: {execution_time_min}") 
+        print(f"Speed Record in Seconds: {execution_time_sec}") 
         
-        return best_solutions, best_fitness_values, diversity_over_time
 
-# Firefly Algorithm parameters
-num_fireflies = 20
-num_iterations = 15
-alpha = 0.5  # Randomness factor
-gamma = 1.0  # Absorption coefficient
-beta0 = 0.2  # Attraction at zero distance
-dimension = 2  # Dimension of the problem space
-bounds = [-10, 10]  # Bounds for the problem space
+        return self.best_firefly, self.best_intensity
 
-# Initialize Firefly Algorithm
-fa = FireflyAlgorithm(num_fireflies, num_iterations, alpha, gamma, beta0, dimension, bounds)
+# Parameters
+n_dim = len(hospitals)  # Number of hospitals
+lower_bound = np.zeros(n_dim)
+upper_bound = max_capacity
+n_fireflies = 20
+max_iter = 100
+alpha = 0.1 # Potential Adjustment: 0.2-0.3 (improve diversity early in the process)
+beta_min = 0.2 # Potential Adjjustment: 0.4 - 0.4 (could accelerate convergence when there’s a smaller search space or highly constrained bounds.)
+gamma_val = 1.0 # Potential Adjustment: 0.5 (For high dimensional spaces, could prevent distant fireflies from being ignored too soon)
+#^^ change along with the severity weight
 
-# Run the optimization
-best_solutions, best_fitness_values, diversity_over_time = fa.optimize()
+# Run optimization
+fa = FireflyAlgorithm(n_fireflies, n_dim, lower_bound, upper_bound, max_iter, alpha, beta_min, gamma_val)
+best_solution, best_intensity = fa.optimize()
+best_solution = np.round(best_solution)
 
-# Display the results
-best_solution = best_solutions[-1]
-print("\nBest solution found:", best_solution)
-print("Function value at best solution:", fa.sphere(best_solution))
+best_solutions = []
 
-# Create a figure with two subplots
-fig, axs = plt.subplots(3,1, figsize=(10,5))
-
-# Plotting the path of the best solutions (for visualization)
-best_solutions = np.array(best_solutions)
-
-axs[0].plot(best_solutions[:, 0], best_solutions[:, 1], '-o')
-axs[0].set_title("Best Solutions Over Iterations")
-axs[0].set_xlabel("X1")
-axs[0].set_ylabel("X2")
-
-# Plotting the best fitness value over iterations
-axs[1].plot(best_fitness_values)
-axs[1].set_title("Best Function Value over Iterations")
-axs[1].set_xlabel("Iteration")
-axs[1].set_ylabel("Best Function Value")
-
-#Plotting of the Distance of Fireflies 
-axs[2].plot(diversity_over_time)
-axs[2].set_title("Diversity Over Iterations")
-axs[2].set_xlabel("Iteration")
-axs[2].set_ylabel("Diversity")
-
-# Display the plots
-plt.tight_layout()
-plt.show()
-
+# Display results
+#print(f"Best Allocation based on severity: {best_solution}")
+print(f"Total Severity Penalty (Objective Value): {best_intensity:.6e}")
 
