@@ -1,4 +1,4 @@
-#Enhanced Algorithm with Dataset
+#Enhanced Algorithm (METHODOLOGY 123) with Dataset
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd

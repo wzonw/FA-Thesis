@@ -101,7 +101,10 @@ class FireflyAlgorithm:
         # Initialize fireflies at random positions
         #self.fireflies = np.full((self.num_fireflies, self.dimension), 5)
         self.fireflies = np.random.uniform(bounds[0], bounds[1],(self.num_fireflies, self.dimension))
-       
+        print("\n🔹 Randomly Initialized Fireflies:")
+        for idx, f in enumerate(self.fireflies):
+            print(f"Firefly {idx + 1}: {np.round(f, 2)}")
+
     def sphere(self, x):
         #Objective function: sphere function to minimize
         return np.sum(x**2)
@@ -165,7 +168,7 @@ class FireflyAlgorithm:
 
 # Firefly Algorithm parameters
 num_fireflies = 20
-num_iterations = 15
+num_iterations = 100
 alpha = 0.5  # Randomness factor
 gamma = 1.0  # Absorption coefficient
 beta0 = 0.2  # Attraction at zero distance

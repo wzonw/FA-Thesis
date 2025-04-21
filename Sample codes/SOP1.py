@@ -19,6 +19,9 @@ class FireflyAlgorithm:
 
         # Initialize fireflies in clusters
         self.fireflies = self.initialize_fireflies()
+        print("\n🔹 Initialized Fireflies via K-Means:")
+        for idx, f in enumerate(self.fireflies):
+            print(f"Firefly {idx + 1}: {np.round(f, 2)}")
         self.light_intensity = np.zeros(n_fireflies)
         self.best_firefly = None
         self.best_intensity = float("inf")
@@ -82,3 +85,4 @@ best_solution, best_intensity = fa.optimize()
 
 print("Best solution:", best_solution)
 print(f"Best objective value: {best_intensity:.6f}")
+
