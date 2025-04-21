@@ -38,7 +38,7 @@ class FireflyAlgorithm:
         dynamic_alpha = self.alpha * (1 - iteration / self.max_iter)  # Adjust alpha for exploration-exploitation
         dynamic_beta = self.beta_min + (1 - self.beta_min) * np.exp(-iteration / (self.max_iter / 2))  # Beta decay for convergence
         dynamic_gamma = self.gamma_val * (1 - iteration / self.max_iter)  # Gamma decay to balance attraction
-
+        
         for i in range(self.n_fireflies):
             for j in range(self.n_fireflies):
                 if self.light_intensity[i] > self.light_intensity[j]:
@@ -70,7 +70,7 @@ n_dim = 2
 lower_bound = -10
 upper_bound = 10
 n_fireflies = 20
-max_iter = 100
+max_iter = 15
 alpha = 0.1
 beta_min = 0.2
 gamma_val = 1.0
@@ -81,14 +81,26 @@ best_solution, best_intensity = fa.optimize()
 
 print("SOP 3")
 print("Best solution:", best_solution)
-print(f"Best objective value: {best_intensity:.6f}")
+print(f"Best objective value: ", best_intensity)
 
-'''#Visualization (optional)
-plt.scatter(fa.fireflies[:, 0], fa.fireflies[:, 1], c='yellow', label='Fireflies')
-plt.scatter(fa.best_firefly[0], fa.best_firefly[1], c='red', label='Best Solution')
-plt.title(f'Iteration {max_iter}')
-plt.xlabel("x1")
-plt.ylabel("x2")
+alphas, betas, gammas = [], [], []
+
+for t in range(max_iter):
+    dynamic_alpha = alpha * (1 - t / max_iter)
+    dynamic_beta = beta_min + (1 - beta_min) * np.exp(-t / (max_iter / 2))
+    dynamic_gamma = gamma_val * (1 - t / max_iter)
+
+    alphas.append(dynamic_alpha)
+    betas.append(dynamic_beta)
+    gammas.append(dynamic_gamma)
+
+plt.figure(figsize=(10, 5))
+plt.plot(alphas, label="Alpha")
+plt.plot(betas, label="Beta")
+plt.plot(gammas, label="Gamma")
+plt.title("Dynamic Parameter Adjustment Over Iterations")
+plt.xlabel("Iteration")
+plt.ylabel("Value")
 plt.legend()
+plt.grid()
 plt.show()
-'''
