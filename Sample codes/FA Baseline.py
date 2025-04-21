@@ -168,7 +168,7 @@ class FireflyAlgorithm:
 
 # Firefly Algorithm parameters
 num_fireflies = 20
-num_iterations = 100
+num_iterations = 15
 alpha = 0.5  # Randomness factor
 gamma = 1.0  # Absorption coefficient
 beta0 = 0.2  # Attraction at zero distance

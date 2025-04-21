@@ -15,20 +15,16 @@ max_capacity = data["Available Extra Rooms in Hospital"].values
 severity_normalized = severity / np.sum(severity)
 
 # Updated objective function to prioritize severity
-def objective_function(x):
-    safe_sum = np.sum(x) - 1e-8  
-
-    allocation_penalty = np.sum(np.maximum(0, x - max_capacity) ** 2)
-    severity_penalty = np.sum((x / safe_sum - severity_normalized) ** 2)
-
-    movement_gradient = 0.01 * np.sum(x**2)  
-
-  
-    jitter = np.random.uniform(0, 1e-5)
-
-    # Combined
-    severity_weight = 10
-    return severity_weight * severity_penalty + allocation_penalty + movement_gradient + jitter
+def objective_function(x): 
+    # Penalty for exceeding max capacity
+    allocation_penalty = np.sum(np.maximum(0, x - max_capacity) **2)
+    
+    # Penalty for under-allocating resources relative to severity
+    severity_penalty = np.sum((x / np.sum(x) - severity_normalized) **2)
+    
+    # Severity's weight in the objective function (optional)
+    severity_weight = 15  
+    return severity_weight * severity_penalty + allocation_penalty
 
 class FireflyAlgorithm:
     def __init__(self, n_fireflies, n_dim, lower_bound, upper_bound, max_iter, alpha=0.5, beta_min=0.2, gamma_val=1.0):

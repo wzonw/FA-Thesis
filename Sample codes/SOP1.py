@@ -48,7 +48,7 @@ class FireflyAlgorithm:
                 if self.light_intensity[i] > self.light_intensity[j]:
                     r = np.linalg.norm(self.fireflies[i] - self.fireflies[j])
                     beta = self.attractiveness(r)
-                    step_size = (1 - r / self.upper_bound) * dynamic_alpha  # Dynamic alpha step size
+                    step_size = (1 - r / self.upper_bound) 
                     self.fireflies[i] = (
                         self.fireflies[i] * (1 - beta) +
                         self.fireflies[j] * beta +
@@ -74,7 +74,7 @@ n_dim = 2
 lower_bound = -10
 upper_bound = 10
 n_fireflies = 20
-max_iter = 100
+max_iter = 15
 alpha = 0.1
 beta_min = 0.4
 gamma_val = 1.0
@@ -84,5 +84,5 @@ fa = FireflyAlgorithm(n_fireflies, n_dim, lower_bound, upper_bound, max_iter, al
 best_solution, best_intensity = fa.optimize()
 
 print("Best solution:", best_solution)
-print(f"Best objective value: {best_intensity:.6f}")
+print(f"Best objective value: ", best_intensity)
 

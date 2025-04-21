@@ -58,7 +58,6 @@ class FireflyAlgorithm:
                 self.best_firefly = self.fireflies[i]
 
     def attractiveness(self, r): #iteration parameter
-        #dynamic_light_absoption = 1.0 / (1+(iteration/self.max_iter)) 
         return self.beta_min * np.exp(-self.gamma_val * r**2) #* dynamic_light_absoption
 
     # def levy_flight(self, Lambda):
