@@ -106,4 +106,12 @@ best_solutions = []
 # Display results
 #print(f"Best Allocation based on severity: {best_solution}")
 print(f"Total Severity Penalty (Objective Value): {best_intensity:.6e}")
-
+plt.figure(figsize=(10, 5))
+plt.plot(fa.intensity_history, label="Objective Value", color="blue")
+plt.plot(fa.intensity_history, label=best_intensity, color="blue")
+plt.xlabel("Iteration")
+plt.ylabel("Objective Value (Severity Penalty + Allocation Penalty)")
+plt.title("Convergence Over Iterations")
+plt.legend()
+plt.grid()
+plt.show()

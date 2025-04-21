@@ -1,3 +1,4 @@
+#SOP2
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -21,6 +22,8 @@ class FireflyAlgorithm:
         self.fireflies = np.random.uniform(self.lower_bound, self.upper_bound, (self.n_fireflies, self.n_dim))
         self.light_intensity = np.zeros(n_fireflies)
         self.best_firefly = None
+        self.intensity_history = []
+        
         self.best_intensity = float("inf")
 
     def update_light_intensity(self):
@@ -30,8 +33,8 @@ class FireflyAlgorithm:
                 self.best_intensity = self.light_intensity[i]
                 self.best_firefly = self.fireflies[i]
 
-    def attractiveness(self, r, beta, gamma): #iteration parameter
-        return beta * np.exp(-self.gamma_val * r**2)
+    def attractiveness(self, r): #iteration parameter
+        return self.beta_min * np.exp(-self.gamma_val * r**2)
     
     def levy_flight(self, Lambda):
         sigma = (gamma_func(1 + Lambda) * np.sin(np.pi * Lambda / 2) /(gamma_func((1 + Lambda) / 2) * Lambda * 2 ** ((Lambda - 1) / 2))) ** (1 / Lambda)
@@ -41,18 +44,13 @@ class FireflyAlgorithm:
         return step
 
     def move_fireflies(self, iteration): 
-        # Dynamic parameter adjustment
-        dynamic_alpha = self.alpha * (1 - iteration / self.max_iter)  # Adjust alpha for exploration-exploitation
-        dynamic_beta = self.beta_min + (1 - self.beta_min) * np.exp(-iteration / (self.max_iter / 2))  # Beta decay for convergence
-        dynamic_gamma = self.gamma_val * (1 - iteration / self.max_iter)  # Gamma decay to balance attraction
-
         for i in range(self.n_fireflies):
             for j in range(self.n_fireflies):
                 if self.light_intensity[i] > self.light_intensity[j]:
                     r = np.linalg.norm(self.fireflies[i] - self.fireflies[j])
-                    beta = self.attractiveness(r, dynamic_gamma, dynamic_beta)
+                    beta = self.attractiveness(r)
                     L = self.levy_flight(1.5)
-                    step_size = (1 - r / self.upper_bound) * dynamic_alpha  # Dynamic alpha step size
+                    step_size = (1 - r / self.upper_bound) 
                     self.fireflies[i] = (
                         self.fireflies[i] * (1 - beta) +
                         self.fireflies[j] * beta +
@@ -65,6 +63,7 @@ class FireflyAlgorithm:
         for t in range(self.max_iter):
             self.update_light_intensity()
             self.move_fireflies(t)
+            self.intensity_history.append(self.best_intensity)
             print(f"iteration {t+1}/{self.max_iter}: Best Intensity = {self.best_intensity:.6f} ")
         end_time = time.time()
         execution_time_min = (end_time - start_time)/60
@@ -78,7 +77,7 @@ n_dim = 2
 lower_bound = -10
 upper_bound = 10
 n_fireflies = 20
-max_iter = 100
+max_iter = 15
 alpha = 0.1
 beta_min = 0.2
 gamma_val = 1.0
@@ -91,12 +90,15 @@ print("SOP 2 and 3")
 print("Best solution:", best_solution)
 print(f"Best objective value: {best_intensity:.6f}")
 
-'''#Visualization (optional)
-plt.scatter(fa.fireflies[:, 0], fa.fireflies[:, 1], c='yellow', label='Fireflies')
-plt.scatter(fa.best_firefly[0], fa.best_firefly[1], c='red', label='Best Solution')
-plt.title(f'Iteration {max_iter}')
-plt.xlabel("x1")
-plt.ylabel("x2")
+#Visualization (optional)
+plt.figure(figsize=(10, 5))
+plt.plot(fa.intensity_history, label="Objective Value", color="blue")
+plt.plot(fa.intensity_history, label=best_intensity, color="blue")
+plt.xlabel("Iteration")
+plt.ylabel("Objective Value (Sphere Function)")
+plt.title("Convergence Over Iterations")
 plt.legend()
+plt.grid()
 plt.show()
-'''
+
+

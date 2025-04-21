@@ -1,4 +1,4 @@
-#Enhanced Algorithm (METHODOLOGY 123) with Dataset
+#Enhanced Algorithm (METHODOLOGY 2) with Dataset
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -39,16 +39,11 @@ class FireflyAlgorithm:
         self.beta_min = beta_min
         self.gamma_val = gamma_val
         
-        self.fireflies = self.initialize_fireflies()
+        self.fireflies = np.random.uniform(self.lower_bound, self.upper_bound, (self.n_fireflies, self.n_dim))
         self.light_intensity = np.zeros(n_fireflies)
         self.best_firefly = None
         self.best_intensity = float("inf")
         self.intensity_history = []
-
-    def initialize_fireflies(self):
-        kmeans = KMeans(n_clusters=self.n_fireflies) #k-means clustering
-        clusters = kmeans.fit(np.random.uniform(self.lower_bound, self.upper_bound, (self.n_fireflies * 2, self.n_dim)))
-        return clusters.cluster_centers_
 
     def update_light_intensity(self):
         for i in range(self.n_fireflies):
@@ -69,17 +64,13 @@ class FireflyAlgorithm:
         return step
 
     def move_fireflies(self, iteration):
-        dynamic_alpha = self.alpha * (1 - iteration / self.max_iter)  # Adjust alpha for exploration-exploitation
-        dynamic_beta = self.beta_min + (1 - self.beta_min) * np.exp(-iteration / self.max_iter)  # gentler decay
-        dynamic_gamma = self.gamma_val * (1 / (1 + 0.1 * iteration))  # slower gamma decay
-
         for i in range(self.n_fireflies):
             for j in range(self.n_fireflies):
                 if self.light_intensity[i] > self.light_intensity[j]:
                     r = np.linalg.norm(self.fireflies[i] - self.fireflies[j])
-                    beta = dynamic_beta * np.exp(-dynamic_gamma * r**2) #iteration with dynamic gamma and beta for parametric adjustment
-                    L = self.levy_flight(1.5) #Levy Flight = ()/Scaling = Balanced mix of short & long jumps if lower (1) more long jumps, if lesser = more short jumps like gaussian method
-                    step_size = (1 - r / self.upper_bound) * dynamic_alpha #Dynamic Alpha Steps
+                    beta = self.attractiveness(r) #iteration with dynamic gamma and beta for parametric adjustment
+                    L = self.levy_flight(0.5) #Levy Flight = ()/Scaling = Balanced mix of short & long jumps if lower (1) more long jumps, if lesser = more short jumps like gaussian method
+                    step_size = (1 - r / self.upper_bound) 
                     self.fireflies[i] = (
                         self.fireflies[i] * (1 - beta) +
                         self.fireflies[j] * beta +
